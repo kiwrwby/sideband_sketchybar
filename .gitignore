@@ -1,0 +1,25 @@
+# compiled helpers: built by helpers/build.sh on the machine that runs them
+helpers/bin/
+
+# macOS and editors
+.DS_Store
+*.swp
+*~
+
+# runtime state and logs, never part of the project
+*.log
+*.pid
+cache/
+.cache/
+
+# backups and local overrides
+*.bak
+*.bak.*
+*.orig
+config.local.sh
+.env
+.env.*
+
+# python
+__pycache__/
+*.pyc

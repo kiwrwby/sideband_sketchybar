@@ -1,0 +1,39 @@
+#!/bin/bash
+# sideband entry point. SketchyBar runs this on start and on every --reload.
+# Layout lives in items/, behaviour in plugins/, tokens in lib/theme.sh.
+SBD_SELF="${BASH_SOURCE[0]}"
+. "${SBD_SELF%/*}/lib/env.sh"
+. "$SBD_ROOT/lib/display.sh"
+
+# Resolve "auto" theme before anything reads a colour.
+if [ "$THEME" = auto ]; then
+  (defaults read -g AppleInterfaceStyle 2>/dev/null | grep -q Dark && echo dark || echo light) > "$SBD_CACHE/appearance"
+  . "$SBD_ROOT/lib/theme.sh"
+fi
+# The server pid daemons watch. Not `pgrep -x sketchybar`: every `sketchybar --set` call
+# is a process of that name too, and the first match is usually one of those.
+if [ -z "$SBD_BAR_PID" ]; then   # tests set it
+  SBD_BAR_PID=$PPID
+  case "$(ps -p "$PPID" -o comm= 2>/dev/null)" in
+    */sketchybar|sketchybar) ;;
+    *) SBD_BAR_PID=$(pgrep -f '^(/[^ ]*/)?sketchybar( --config .*)?$' | head -1) ;;
+  esac
+fi
+export SBD_BAR_PID
+
+# Fresh popups and clean transient state. A stale popup_open record would make the
+# first click act as a close.
+rm -f "$SBD_CACHE"/popup.* "$SBD_CACHE/popup_open" "$SBD_CACHE"/front_app.last
+
+# While the bar is built it sits far below the screen; the last lines move it into
+# place, so it appears complete. If this script dies midway the trap still shows it.
+BAR_AWAY=4000
+trap 'command sketchybar --bar y_offset=$BAR_TOP' EXIT
+
+sbd_measure_display
+ITEM_DY=$(( ISLAND_HEIGHT % 2 ))   # odd island height leaves text 1pt low; raise bar items by 1
+P="$SBD_PLUGINS"
+
+for part in bar left media right buttons system finish; do
+  . "$SBD_ROOT/items/$part.sh"
+done
